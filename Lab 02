@@ -1,0 +1,167 @@
+from copy import deepcopy
+
+# PuzzleState Class
+class PuzzleState:
+    def __init__(self, board, path=None):
+        self.board = board
+        self.path = path or []
+
+    def find_blank(self):
+        for i in range(3):
+            for j in range(3):
+                if self.board[i][j] == 0:
+                    return i, j
+
+    def get_possible_moves(self):
+        x, y = self.find_blank()
+        moves = []
+        directions = {
+            'Up': (-1, 0),
+            'Down': (1, 0),
+            'Left': (0, -1),
+            'Right': (0, 1)
+        }
+
+        for action, (dx, dy) in directions.items():
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < 3 and 0 <= ny < 3:
+                new_board = deepcopy(self.board)
+                new_board[x][y], new_board[nx][ny] = new_board[nx][ny], new_board[x][y]
+                moves.append(PuzzleState(new_board, self.path + [action]))
+        return moves
+
+    def is_goal(self):
+        return self.board == [[1, 2, 3], [4, 5, 6], [7, 8, 0]]
+
+    def __hash__(self):
+        return hash(str(self.board))
+
+    def __eq__(self, other):
+        return self.board == other.board
+
+    def __str__(self):
+        return "\n".join(str(row) for row in self.board)
+
+
+# DFS Implementation
+def dfs(start_state, max_depth=4):
+    stack = [(start_state, 0)]
+    visited = set()
+
+    while stack:
+        current, depth = stack.pop()
+
+        if current in visited:
+            continue
+
+        visited.add(current)
+
+        if current.is_goal():
+            return current.path
+
+        if depth < max_depth:
+            for neighbor in reversed(current.get_possible_moves()):
+                stack.append((neighbor, depth + 1))
+    return None
+
+
+# IDS Implementation
+def ids(start_state, max_depth=4):
+    for depth in range(max_depth + 1):
+        result = dls(start_state, depth)
+        if result is not None:
+            return result
+    return None
+
+def dls(state, limit):
+    stack = [(state, 0)]
+    visited = set()
+
+    while stack:
+        current, depth = stack.pop()
+
+        if current in visited:
+            continue
+
+        visited.add(current)
+
+        if current.is_goal():
+            return current.path
+
+        if depth < limit:
+            for neighbor in reversed(current.get_possible_moves()):
+                stack.append((neighbor, depth + 1))
+    return None
+
+
+# Apply the moves step-by-step and print board after every move
+def simulate_moves(initial_board, moves):
+    state = PuzzleState(initial_board)
+    print("\nInitial State:")
+    print(state)
+    x, y = state.find_blank()
+
+    for move in moves:
+        if move == 'Up':
+            dx, dy = -1, 0
+        elif move == 'Down':
+            dx, dy = 1, 0
+        elif move == 'Left':
+            dx, dy = 0, -1
+        elif move == 'Right':
+            dx, dy = 0, 1
+
+        nx, ny = x + dx, y + dy
+        state.board[x][y], state.board[nx][ny] = state.board[nx][ny], state.board[x][y]
+        x, y = nx, ny
+        print(f"\nMove: {move}")
+        print(state)
+
+
+# Get Input from User
+def get_user_input():
+    print("Enter the 8-puzzle start state as 9 space-separated numbers (use 0 for the blank):")
+    while True:
+        try:
+            values = list(map(int, input().strip().split()))
+            if sorted(values) != list(range(9)):
+                raise ValueError("Invalid input. Must contain all numbers from 0 to 8 exactly once.")
+            board = [values[i:i + 3] for i in range(0, 9, 3)]
+            return board
+        except Exception as e:
+            print(f"Error: {e}. Try again.")
+
+
+# Main Function
+if __name__ == "__main__":
+    print("You can try this example input (solvable in <=4 moves):")
+    print("1 2 3 4 5 6 7 0 8  --> Just one move needed: Right")
+    print("Or enter your own.")
+
+    user_input = input("Use example input? (y/n): ").strip().lower()
+    if user_input == 'y':
+        start_board = [[1, 2, 3], [4, 5, 6], [7, 0, 8]]
+    else:
+        start_board = get_user_input()
+
+    start_state = PuzzleState(start_board)
+
+    print("\nSolving with DFS (max depth 4)...")
+    dfs_path = dfs(start_state, max_depth=4)
+    if dfs_path:
+        print("DFS Solution Found!")
+        print("Moves:", dfs_path)
+        print("Total Moves:", len(dfs_path))
+        simulate_moves(start_board, dfs_path)
+    else:
+        print("No DFS solution found within depth limit.")
+
+    print("\nSolving with IDS (max depth 4)...")
+    ids_path = ids(start_state, max_depth=4)
+    if ids_path:
+        print("IDS Solution Found!")
+        print("Moves:", ids_path)
+        print("Total Moves:", len(ids_path))
+        simulate_moves(start_board, ids_path)
+    else:
+        print("No IDS solution found within depth limit.")
